@@ -1,8 +1,8 @@
 [
-  { "title": "캐릭터 일러스트 A", "image": "image/ (5).jpg", "caption": "커미션용 캐릭터 샘플", "alt": "밝은 톤의 캐릭터 일러스트", "date": "2025-10-05", "type": "A" },
-  { "title": "아이콘 세트", "image": "image/ (6).jpg", "caption": "SNS용 아이콘 예시", "alt": "다양한 스타일의 아이콘 모음", "date": "2025-09-01", "type": "B" },
-  { "title": "메인 비주얼", "image": "image/ (7).jpg", "caption": "포스터 스타일 비주얼", "alt": "포스터용 일러스트 비주얼", "date": "2025-08-08", "type": "A" },
-  { "title": "미니 캐릭터", "image": "image/ (8).jpg", "caption": "미니 스타일 캐릭터 예시", "alt": "미니 캐릭터 일러스트", "date": "2025-07-30", "type": "A" },
-  { "title": "굿즈 디자인", "image": "image/ (12).jpg", "caption": "상품화 가능한 디자인 예시", "alt": "굿즈에 사용된 일러스트 디자인", "date": "2025-06-02", "type": "B" },
-  { "title": "컨셉 아트", "image": "image/ (13).jpg", "caption": "컨셉 아트 샘플", "alt": "컨셉 디자인 스타일의 일러스트", "date": "2025-05-11", "type": "C" }
+  { "title": "캐릭터 일러스트 A", "image": "image/ (5).jpg", "caption": "커미션용 캐릭터 샘플", "alt": "밝은 톤의 캐릭터 일러스트", "date": "2025-10-05" },
+  { "title": "아이콘 세트", "image": "image/ (6).jpg", "caption": "SNS용 아이콘 예시", "alt": "다양한 스타일의 아이콘 모음", "date": "2025-09-01" },
+  { "title": "메인 비주얼", "image": "image/ (7).jpg", "caption": "포스터 스타일 비주얼", "alt": "포스터용 일러스트 비주얼", "date": "2025-08-08" },
+  { "title": "미니 캐릭터", "image": "image/ (8).jpg", "caption": "미니 스타일 캐릭터 예시", "alt": "미니 캐릭터 일러스트", "date": "2025-07-30" },
+  { "title": "굿즈 디자인", "image": "image/ (12).jpg", "caption": "상품화 가능한 디자인 예시", "alt": "굿즈에 사용된 일러스트 디자인", "date": "2025-06-02" },
+  { "title": "컨셉 아트", "image": "image/ (13).jpg", "caption": "컨셉 아트 샘플", "alt": "컨셉 디자인 스타일의 일러스트", "date": "2025-05-11" }
 ]

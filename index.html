@@ -16,11 +16,17 @@
       <button class="nav-btn" data-page="review.html">후기</button>
       <button class="nav-btn" data-page="commission.html">커미션 신청</button>
     </nav>
+    <div class="top-utils" role="search">
+      <input id="global-search" class="cute-input" type="search" placeholder="검색어를 입력하세요 (샘플/개인작 제목)">
+      <span id="visitor-badge" class="pill-badge" aria-label="방문자 수">👀 0</span>
+      <button id="admin-toggle" class="nav-btn" aria-label="관리자 모드 전환">Admin</button>
+      <button id="music-set" class="nav-btn" aria-label="음악 링크 설정" data-admin>Music</button>
+    </div>
   </header>
 
   <main class="container">
     <!-- 왼쪽 프로필 -->
-    <aside class="profile-card" role="complementary" aria-label="아티스트 프로필">
+    <aside class="profile-card sticky" id="profile-card" data-draggable="true" role="complementary" aria-label="아티스트 프로필">
       <img src="image/ (1).jpg" alt="나루 프로필 사진" class="profile-img">
       <h2 class="profile-name">나루</h2>
       <p class="profile-bio">디지털 아티스트 / 커미션 작업 중</p>
@@ -30,8 +36,8 @@
     </aside>
 
     <!-- 중앙 대시보드 -->
-    <section class="dashboard">
-      <div class="card commission-status">
+    <section class="dashboard dashboard-grid">
+      <div class="card commission-status wide sticky" id="commission-card" data-draggable="true">
         <h3>현재 진행 중인 커미션</h3>
         <ul id="commission-list"></ul>
         <div class="summary">
@@ -39,18 +45,35 @@
           <span>대기중 (<span id="count-waiting">0</span>건)</span> · 
           <span>완료 (<span id="count-done">0</span>건)</span>
         </div>
-      </div>
-
-      <div class="card recent-review">
-        <h3>최근 후기</h3>
-        <div class="slider-wrap">
-          <div id="review-list" class="review-slider"></div>
+        <div class="commission-actions">
+          <button id="open-commission-admin" class="nav-btn" aria-label="커미션 상태 업데이트" data-admin>상태 업데이트</button>
         </div>
       </div>
 
-      <div class="gallery-row">
+      <div class="card recent-review sticky" id="recent-review-card" data-draggable="true">
+        <h3>최근 후기</h3>
+        <div class="slider-wrap">
+          <button class="slider-btn" id="recent-prev" aria-label="이전">◀</button>
+          <div class="slider-content"><div id="recent-slider" class="review-slider"></div></div>
+          <button class="slider-btn" id="recent-next" aria-label="다음">▶</button>
+        </div>
+      </div>
+
+      <div class="card best-review sticky" id="best-review-card" data-draggable="true">
+        <div class="card-head">
+          <h3>Best 후기</h3>
+          <button id="open-best-admin" class="nav-btn" data-admin>관리</button>
+        </div>
+        <div class="slider-wrap">
+          <button class="slider-btn" id="best-prev" aria-label="이전">◀</button>
+          <div class="slider-content"><div id="best-slider" class="review-slider"></div></div>
+          <button class="slider-btn" id="best-next" aria-label="다음">▶</button>
+        </div>
+      </div>
+
+      <div class="gallery-row wide">
         <div class="card gallery sample-gallery">
-          <h3>커미션 샘플 최근 게시물</h3>
+          <h3>Sample</h3>
           <div class="slider-wrap">
             <button class="slider-btn" id="sample-prev" aria-label="이전">◀</button>
             <div class="slider-content"><div id="sample-list" class="thumb-slider"></div></div>
@@ -58,7 +81,7 @@
           </div>
         </div>
         <div class="card gallery personal-gallery">
-          <h3>개인작 최근 게시물</h3>
+          <h3>Personal</h3>
           <div class="slider-wrap">
             <button class="slider-btn" id="personal-prev" aria-label="이전">◀</button>
             <div class="slider-content"><div id="personal-list" class="thumb-slider"></div></div>
@@ -90,6 +113,75 @@
         <div id="review-form-result" aria-live="polite"></div>
       </div>
     </div>
+
+    <!-- 커미션 관리 모달 -->
+    <div id="commission-admin-modal" class="modal" aria-hidden="true">
+      <div class="modal-content" role="dialog" aria-modal="true" aria-label="커미션 상태 관리">
+        <button id="commission-admin-close" class="modal-close" aria-label="닫기">✕</button>
+        <h3>커미션 상태 관리</h3>
+        <form id="commission-admin-form">
+          <div class="admin-row">
+            <label>이름<br><input name="name" required></label>
+            <label>타입<br>
+              <select name="type">
+                <option value="A">A</option>
+                <option value="B">B</option>
+                <option value="C">C</option>
+              </select>
+            </label>
+            <label>상태<br>
+              <select name="status">
+                <option value="작업중">작업중</option>
+                <option value="대기중">대기중</option>
+                <option value="완료">완료</option>
+              </select>
+            </label>
+          </div>
+          <button type="submit">추가</button>
+        </form>
+        <div class="admin-tools">
+          <button id="commission-export">내보내기(JSON)</button>
+          <label class="import-label">
+            불러오기(JSON)
+            <input type="file" id="commission-import" accept="application/json">
+          </label>
+          <button id="commission-clear">전부 삭제</button>
+        </div>
+        <div class="admin-list-wrap">
+          <table class="admin-table" aria-label="커미션 목록 편집">
+            <thead>
+              <tr><th>이름</th><th>타입</th><th>상태</th><th>삭제</th></tr>
+            </thead>
+            <tbody id="commission-admin-list"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Best 후기 관리 모달 -->
+    <div id="best-admin-modal" class="modal" aria-hidden="true">
+      <div class="modal-content" role="dialog" aria-modal="true" aria-label="Best 후기 관리">
+        <button id="best-admin-close" class="modal-close" aria-label="닫기">✕</button>
+        <h3>Best 후기 관리</h3>
+        <form id="best-form" data-admin>
+          <label>이름<br><input name="author" required></label>
+          <label>내용<br><textarea name="content" rows="4" required></textarea></label>
+          <label>별점(1~5)<br><input type="number" name="rating" min="1" max="5" value="5"></label>
+          <button type="submit">추가</button>
+        </form>
+        <div class="admin-list-wrap">
+          <table class="admin-table">
+            <thead><tr><th>작성자</th><th>별점</th><th>삭제</th></tr></thead>
+            <tbody id="best-admin-list"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
   </main>
 </body>
+<div id="mini-player" class="mini-player" aria-label="Music player">
+  <button id="mini-play" class="mini-btn" aria-label="재생">▶</button>
+  <button id="mini-pause" class="mini-btn" aria-label="일시정지" style="display:none;">■</button>
+  <iframe id="mini-iframe" width="0" height="0" src="" title="YouTube mini player" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen style="display:none;"></iframe>
+</div>
 </html>

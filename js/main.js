@@ -18,6 +18,20 @@ document.addEventListener("DOMContentLoaded", () => {
     loadReviewData();
     loadPersonal();
     loadSample();
+    initVisitorCounter();
+    initGlobalSearch();
+    initYouTubePlayer();
+    initAdminMode();
+  }
+
+  // 미니 플레이어는 모든 페이지에서 초기화
+  initMiniPlayer();
+  // 고정 프로필: index.html 외 페이지에 삽입
+  injectFixedProfile();
+
+  // 커미션 게시판 페이지 초기화
+  if (window.location.pathname.includes("commission.html")) {
+    initCommissionBoard();
   }
 });
 
@@ -59,6 +73,142 @@ async function loadPersonal() {
   }
 }
 
+// ---------------------------
+// 커미션 게시판 (무서버, 로컬 저장)
+// ---------------------------
+function initCommissionBoard() {
+  const form = document.getElementById('commission-board-form');
+  const listEl = document.getElementById('commission-board-list');
+  const viewModal = document.getElementById('commission-view-modal');
+  const viewBody = document.getElementById('commission-view-body');
+  const viewClose = document.getElementById('commission-view-close');
+  const delBtn = document.getElementById('commission-delete');
+
+  if (!form || !listEl) return;
+
+  function readBoard() {
+    try {
+      const arr = JSON.parse(localStorage.getItem('commission_board') || '[]');
+      return Array.isArray(arr) ? arr : [];
+    } catch { return []; }
+  }
+  function writeBoard(arr) {
+    localStorage.setItem('commission_board', JSON.stringify(arr));
+  }
+  function maskName(name) {
+    const s = String(name || '');
+    if (!s) return '*';
+    return s.length > 1 ? s.slice(0, -1) + '*' : '*';
+  }
+  function renderList() {
+    const items = readBoard().sort((a,b) => new Date(b.date) - new Date(a.date));
+    listEl.innerHTML = '';
+    if (items.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'board-item';
+      empty.textContent = '아직 접수된 신청이 없습니다.';
+      listEl.appendChild(empty);
+      return;
+    }
+    items.forEach((it, idx) => {
+      const div = document.createElement('div');
+      div.className = 'board-item';
+      div.setAttribute('data-idx', String(idx));
+      const left = document.createElement('div');
+      left.innerHTML = `<div class="title">${maskName(it.name)} / ${it.type || 'A'}</div><div class="meta">${(it.date||'').split('T')[0]}</div>`;
+      const right = document.createElement('div');
+      right.className = 'meta';
+      right.textContent = it.status || '접수';
+      div.appendChild(left);
+      div.appendChild(right);
+      listEl.appendChild(div);
+    });
+  }
+
+  function requirePinIfNeeded(item, reason) {
+    const isAdmin = document.body.classList.contains('is-admin');
+    if (isAdmin) return true;
+    const pin = prompt(`${reason}을(를) 위해 4자리 비밀번호를 입력하세요`);
+    if (!pin) return false;
+    return pin === item.pin;
+  }
+
+  function openView(idx) {
+    const items = readBoard();
+    const item = items[idx];
+    if (!item) return;
+    // 열람: 관리자는 바로, 작성자는 PIN 확인
+    if (!requirePinIfNeeded(item, '열람')) return;
+    viewBody.innerHTML = `
+      <p><b>이름</b> ${item.name}</p>
+      <p><b>이메일</b> ${item.email || '-'}</p>
+      <p><b>타입</b> ${item.type || 'A'}</p>
+      <p><b>작성일</b> ${(item.date||'').replace('T',' ').slice(0,16)}</p>
+      <p><b>요청 내용</b><br>${(item.message||'').replace(/\\n/g,'<br>')}</p>
+    `;
+    delBtn.setAttribute('data-idx', String(idx));
+    openModal(viewModal);
+  }
+
+  if (listEl) {
+    listEl.addEventListener('click', (e) => {
+      const item = e.target.closest && e.target.closest('.board-item');
+      if (!item) return;
+      const idx = parseInt(item.getAttribute('data-idx'));
+      if (!isNaN(idx)) openView(idx);
+    });
+  }
+
+  if (viewClose) viewClose.addEventListener('click', () => closeModal(viewModal));
+
+  if (delBtn) {
+    delBtn.addEventListener('click', () => {
+      const idx = parseInt(delBtn.getAttribute('data-idx'));
+      const items = readBoard();
+      const item = items[idx];
+      if (!item) return;
+      if (!document.body.classList.contains('is-admin')) {
+        if (!requirePinIfNeeded(item, '삭제')) return;
+      }
+      if (confirm('이 글을 삭제할까요?')) {
+        items.splice(idx, 1);
+        writeBoard(items);
+        closeModal(viewModal);
+        renderList();
+      }
+    });
+  }
+
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const data = new FormData(form);
+    const entry = {
+      name: (data.get('name')||'').toString().trim(),
+      email: (data.get('email')||'').toString().trim(),
+      type: (data.get('type')||'A').toString().trim(),
+      message: (data.get('message')||'').toString().trim(),
+      pin: (data.get('pin')||'').toString().trim(),
+      status: '접수',
+      date: new Date().toISOString()
+    };
+    if (!/^[0-9]{4}$/.test(entry.pin)) {
+      alert('비밀번호는 숫자 4자리여야 합니다.');
+      return;
+    }
+    if (!entry.name || !entry.message) {
+      alert('이름과 요청 내용은 필수입니다.');
+      return;
+    }
+    const items = readBoard();
+    items.unshift(entry);
+    writeBoard(items);
+    form.reset();
+    renderList();
+    alert('등록되었습니다. 비밀번호는 잊지 마세요!');
+  });
+
+  renderList();
+}
 // ---------------------------
 // 샘플작 로드
 // ---------------------------
@@ -137,6 +287,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const sampleNext = document.getElementById('sample-next');
     const personalPrev = document.getElementById('personal-prev');
     const personalNext = document.getElementById('personal-next');
+    const recentPrev = document.getElementById('recent-prev');
+    const recentNext = document.getElementById('recent-next');
+    const bestPrev = document.getElementById('best-prev');
+    const bestNext = document.getElementById('best-next');
     if (samplePrev) samplePrev.addEventListener('click', () => {
       if (window._sampleIdx > 0) { window._sampleIdx -= 1; renderSampleSlider(); }
     });
@@ -153,9 +307,313 @@ document.addEventListener("DOMContentLoaded", () => {
         window._personalIdx += 1; renderPersonalSlider();
       }
     });
+    if (recentPrev) recentPrev.addEventListener('click', () => {
+      if (window._recentIdx > 0) { window._recentIdx -= 1; renderRecentSlider(); }
+    });
+    if (recentNext) recentNext.addEventListener('click', () => {
+      if (window._recentReviews && window._recentIdx < window._recentReviews.length - 2) {
+        window._recentIdx += 1; renderRecentSlider();
+      }
+    });
+    if (bestPrev) bestPrev.addEventListener('click', () => {
+      if (window._bestIdx > 0) { window._bestIdx -= 1; renderBestSlider(); }
+    });
+    if (bestNext) bestNext.addEventListener('click', () => {
+      if (window._bestReviews && window._bestIdx < window._bestReviews.length - 2) {
+        window._bestIdx += 1; renderBestSlider();
+      }
+    });
   }
 });
 
+// ---------------------------
+// 방문자 카운터(로컬) & 표시
+// ---------------------------
+function initVisitorCounter() {
+  try {
+    const key = 'visitor_count';
+    const n = parseInt(localStorage.getItem(key) || '0') + 1;
+    localStorage.setItem(key, String(n));
+    const badge = document.getElementById('visitor-badge');
+    if (badge) badge.textContent = `👀 ${n}`;
+  } catch {}
+}
+
+// ---------------------------
+// 전역 검색 (샘플/개인작 제목)
+// ---------------------------
+function initGlobalSearch() {
+  const input = document.getElementById('global-search');
+  if (!input) return;
+  input.addEventListener('input', () => {
+    const q = input.value.trim().toLowerCase();
+    if (!q) {
+      // 검색어 없으면 기본 슬라이더 렌더
+      renderSampleSlider();
+      renderPersonalSlider();
+      return;
+    }
+    // 샘플 필터
+    if (window._sampleItems) {
+      const container = document.getElementById('sample-list');
+      if (container) {
+        container.innerHTML = '';
+        window._sampleItems.filter(it => (it.title||'').toLowerCase().includes(q)).slice(0, 8).forEach((it, idx) => {
+          const el = document.createElement('div');
+          el.className = 'thumb';
+          el.innerHTML = `<img src="${it.image}" alt="샘플 ${idx+1}" loading="lazy" tabindex="0">`;
+          container.appendChild(el);
+        });
+      }
+    }
+    // 개인작 필터
+    if (window._personalItems) {
+      const container = document.getElementById('personal-list');
+      if (container) {
+        container.innerHTML = '';
+        window._personalItems.filter(it => (it.title||'').toLowerCase().includes(q)).slice(0, 8).forEach((it, idx) => {
+          const el = document.createElement('div');
+          el.className = 'thumb';
+          el.innerHTML = `<img src="${it.image}" alt="개인작 ${idx+1}" loading="lazy" tabindex="0">`;
+          container.appendChild(el);
+        });
+      }
+    }
+  });
+}
+
+// ---------------------------
+// YouTube 플레이어 (링크 -> 임베드)
+// ---------------------------
+function initYouTubePlayer() {
+  const btn = document.getElementById('youtube-play');
+  const input = document.getElementById('youtube-url');
+  const iframe = document.getElementById('youtube-iframe');
+  if (!btn || !input || !iframe) return;
+
+  // 저장된 음악 임베드가 있으면 바로 표시
+  try {
+    const saved = localStorage.getItem('music_embed') || '';
+    if (saved) {
+      iframe.src = saved;
+      iframe.style.display = 'block';
+    }
+  } catch {}
+
+  function toEmbedUrl(url) {
+    try {
+      const u = new URL(url);
+      if (u.hostname.includes('youtu.be')) {
+        return `https://www.youtube.com/embed/${u.pathname.replace('/','')}?autoplay=1`;
+      }
+      if (u.hostname.includes('youtube.com')) {
+        const id = u.searchParams.get('v');
+        if (id) return `https://www.youtube.com/embed/${id}?autoplay=1`;
+        if (u.pathname.startsWith('/shorts/')) {
+          const sid = u.pathname.split('/shorts/')[1];
+          if (sid) return `https://www.youtube.com/embed/${sid}?autoplay=1`;
+        }
+      }
+    } catch {}
+    return '';
+  }
+  btn.addEventListener('click', () => {
+    const embed = toEmbedUrl(input.value);
+    if (embed) {
+      iframe.src = embed;
+      iframe.style.display = 'block';
+      try { localStorage.setItem('music_embed', embed); } catch {}
+    } else {
+      alert('유효한 YouTube 링크가 아닙니다.');
+    }
+  });
+}
+
+// ---------------------------
+// 미니 음악 플레이어(고정) + Admin 음악 설정
+// ---------------------------
+function setMusicEmbed(url) {
+  const embed = (function toEmbed(u) {
+    try {
+      const x = new URL(u);
+      if (x.hostname.includes('youtu.be')) return `https://www.youtube.com/embed/${x.pathname.replace('/','')}?autoplay=1`;
+      if (x.hostname.includes('youtube.com')) {
+        const id = x.searchParams.get('v');
+        if (id) return `https://www.youtube.com/embed/${id}?autoplay=1`;
+        if (x.pathname.startsWith('/shorts/')) {
+          const sid = x.pathname.split('/shorts/')[1];
+          if (sid) return `https://www.youtube.com/embed/${sid}?autoplay=1`;
+        }
+      }
+    } catch {}
+    return '';
+  })(url);
+  if (embed) {
+    try { localStorage.setItem('music_embed', embed); } catch {}
+    return embed;
+  }
+  return '';
+}
+
+function initMiniPlayer() {
+  const playBtn = document.getElementById('mini-play');
+  const pauseBtn = document.getElementById('mini-pause');
+  const iframe = document.getElementById('mini-iframe');
+  const setBtn = document.getElementById('music-set'); // admin 전용 (index에 있음)
+
+  if (setBtn) {
+    setBtn.addEventListener('click', () => {
+      if (!document.body.classList.contains('is-admin')) return;
+      const url = prompt('YouTube 링크를 입력하세요');
+      if (!url) return;
+      const embed = setMusicEmbed(url);
+      if (embed) {
+        try { localStorage.setItem('music_playing', '1'); } catch {}
+        if (iframe) { iframe.src = embed; iframe.style.display = 'block'; }
+        if (playBtn && pauseBtn) { playBtn.style.display = 'none'; pauseBtn.style.display = 'inline-block'; }
+      } else {
+        alert('유효한 YouTube 링크가 아닙니다.');
+      }
+    });
+  }
+
+  if (!playBtn || !pauseBtn || !iframe) return;
+
+  // 페이지 진입 시 이전 상태 복원
+  try {
+    const embed = localStorage.getItem('music_embed') || '';
+    const isPlaying = localStorage.getItem('music_playing') === '1';
+    if (embed) {
+      iframe.src = isPlaying ? embed : embed.replace('?autoplay=1','');
+      iframe.style.display = 'block';
+      if (isPlaying) { playBtn.style.display = 'none'; pauseBtn.style.display = 'inline-block'; }
+    }
+  } catch {}
+
+  playBtn.addEventListener('click', () => {
+    try {
+      const embed = localStorage.getItem('music_embed') || '';
+      if (!embed) return;
+      // 재시작을 위해 src 재세팅
+      iframe.src = embed;
+      iframe.style.display = 'block';
+      localStorage.setItem('music_playing', '1');
+      playBtn.style.display = 'none';
+      pauseBtn.style.display = 'inline-block';
+    } catch {}
+  });
+  pauseBtn.addEventListener('click', () => {
+    // 간단 pause: src 비우기
+    iframe.src = '';
+    try { localStorage.setItem('music_playing', '0'); } catch {}
+    pauseBtn.style.display = 'none';
+    playBtn.style.display = 'inline-block';
+  });
+}
+// ---------------------------
+// Admin Mode (static): 패스코드로 body에 is-admin 클래스 토글
+// ---------------------------
+function initAdminMode() {
+  const ADMIN_KEY = 'is_admin';
+  const PASS = 'naru-admin'; // 필요 시 변경하세요
+  const btn = document.getElementById('admin-toggle');
+  if (!btn) return;
+
+  // 초기 상태 반영
+  try {
+    const enabled = localStorage.getItem(ADMIN_KEY) === '1';
+    if (enabled) document.body.classList.add('is-admin');
+  } catch {}
+
+  btn.addEventListener('click', () => {
+    const enabled = document.body.classList.contains('is-admin');
+    if (enabled) {
+      document.body.classList.remove('is-admin');
+      try { localStorage.setItem(ADMIN_KEY, '0'); } catch {}
+      return;
+    }
+    const input = prompt('관리자 패스코드를 입력하세요');
+    if (input && input === PASS) {
+      document.body.classList.add('is-admin');
+      try { localStorage.setItem(ADMIN_KEY, '1'); } catch {}
+    } else if (input) {
+      alert('패스코드가 올바르지 않습니다.');
+    }
+  });
+}
+
+// ---------------------------
+// 고정 프로필 삽입(비-메인 페이지)
+// ---------------------------
+function injectFixedProfile() {
+  if (window.location.pathname.includes("index.html") || window.location.pathname === "/") return;
+  if (document.getElementById('fixed-profile-root')) return;
+  const root = document.createElement('div');
+  root.id = 'fixed-profile-root';
+  root.className = 'fixed-profile';
+  root.innerHTML = `
+    <div class="profile-card sticky" aria-label="아티스트 프로필(고정)">
+      <img src="image/ (1).jpg" alt="나루 프로필 사진" class="profile-img">
+      <h2 class="profile-name">나루</h2>
+      <p class="profile-bio">디지털 아티스트 / 커미션 작업 중</p>
+      <div class="status"><span class="dot online"></span> 커미션 오픈 중</div>
+    </div>
+  `;
+  document.body.appendChild(root);
+}
+// ---------------------------
+// 드래그 이동(메인 카드) + 위치 저장
+// ---------------------------
+document.addEventListener('DOMContentLoaded', () => {
+  if (!(window.location.pathname.includes("index.html") || window.location.pathname === "/")) return;
+  const key = 'drag_positions_index';
+  function readPos() {
+    try { return JSON.parse(localStorage.getItem(key) || '{}'); } catch { return {}; }
+  }
+  function writePos(obj) { localStorage.setItem(key, JSON.stringify(obj)); }
+  const positions = readPos();
+  document.querySelectorAll('[data-draggable="true"]').forEach(el => {
+    const id = el.id;
+    if (positions[id]) {
+      el.style.position = 'relative';
+      el.style.left = positions[id].x + 'px';
+      el.style.top = positions[id].y + 'px';
+    }
+    let startX = 0, startY = 0, originX = 0, originY = 0, dragging = false;
+    function onDown(e) {
+      dragging = true;
+      const p = ('touches' in e) ? e.touches[0] : e;
+      startX = p.clientX;
+      startY = p.clientY;
+      const rect = el.getBoundingClientRect();
+      originX = parseInt(el.style.left || '0');
+      originY = parseInt(el.style.top || '0');
+      el.style.willChange = 'transform';
+      e.preventDefault();
+    }
+    function onMove(e) {
+      if (!dragging) return;
+      const p = ('touches' in e) ? e.touches[0] : e;
+      const dx = p.clientX - startX;
+      const dy = p.clientY - startY;
+      el.style.left = originX + dx + 'px';
+      el.style.top = originY + dy + 'px';
+    }
+    function onUp() {
+      if (!dragging) return;
+      dragging = false;
+      el.style.willChange = 'auto';
+      positions[id] = { x: parseInt(el.style.left||'0'), y: parseInt(el.style.top||'0') };
+      writePos(positions);
+    }
+    el.addEventListener('mousedown', onDown);
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+    el.addEventListener('touchstart', onDown, { passive:false });
+    document.addEventListener('touchmove', onMove, { passive:false });
+    document.addEventListener('touchend', onUp);
+  });
+});
 // 라이트박스 및 후기 모달 핸들러
 function openModal(modalEl) {
   if (!modalEl) return;
@@ -360,6 +818,148 @@ document.addEventListener('submit', function(e) {
 });
 
 // ---------------------------
+// 커미션 로컬 관리(추가/수정/삭제/불러오기/내보내기)
+// ---------------------------
+document.addEventListener('DOMContentLoaded', () => {
+  if (!(window.location.pathname.includes("index.html") || window.location.pathname === "/")) return;
+
+  const adminBtn = document.getElementById('open-commission-admin');
+  const adminModal = document.getElementById('commission-admin-modal');
+  const adminClose = document.getElementById('commission-admin-close');
+  const adminForm = document.getElementById('commission-admin-form');
+  const adminTableBody = document.getElementById('commission-admin-list');
+  const exportBtn = document.getElementById('commission-export');
+  const importInput = document.getElementById('commission-import');
+  const clearBtn = document.getElementById('commission-clear');
+
+  function readAdminList() {
+    try {
+      const arr = JSON.parse(localStorage.getItem('commission_admin') || '[]');
+      return Array.isArray(arr) ? arr : [];
+    } catch (e) { return []; }
+  }
+  function writeAdminList(arr) {
+    localStorage.setItem('commission_admin', JSON.stringify(arr));
+  }
+  function renderAdminTable() {
+    const items = readAdminList();
+    if (!adminTableBody) return;
+    adminTableBody.innerHTML = '';
+    items.forEach((it, idx) => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${it.name || ''}</td>
+        <td>${it.type || ''}</td>
+        <td>
+          <select data-idx="${idx}" class="admin-status-select">
+            <option value="작업중"${(it.status||'작업중')==='작업중'?' selected':''}>작업중</option>
+            <option value="대기중"${it.status==='대기중'?' selected':''}>대기중</option>
+            <option value="완료"${it.status==='완료'?' selected':''}>완료</option>
+          </select>
+        </td>
+        <td><button data-del="${idx}">삭제</button></td>
+      `;
+      adminTableBody.appendChild(tr);
+    });
+  }
+
+  if (adminBtn) adminBtn.addEventListener('click', () => { openModal(adminModal); renderAdminTable(); });
+  if (adminClose) adminClose.addEventListener('click', () => closeModal(adminModal));
+
+  if (adminForm) {
+    adminForm.addEventListener('submit', e => {
+      e.preventDefault();
+      const data = new FormData(adminForm);
+      const item = {
+        name: (data.get('name') || '').toString().trim(),
+        type: (data.get('type') || 'A').toString().trim(),
+        status: (data.get('status') || '작업중').toString().trim(),
+        date: new Date().toISOString()
+      };
+      if (!item.name) return;
+      const items = readAdminList();
+      items.unshift(item);
+      writeAdminList(items);
+      adminForm.reset();
+      renderAdminTable();
+      loadCommissionData();
+    });
+  }
+
+  if (adminTableBody) {
+    adminTableBody.addEventListener('change', e => {
+      const sel = e.target;
+      if (sel && sel.classList.contains('admin-status-select')) {
+        const idx = parseInt(sel.getAttribute('data-idx'));
+        const items = readAdminList();
+        if (!isNaN(idx) && items[idx]) {
+          items[idx].status = sel.value;
+          writeAdminList(items);
+          loadCommissionData();
+        }
+      }
+    });
+    adminTableBody.addEventListener('click', e => {
+      const btn = e.target.closest && e.target.closest('button[data-del]');
+      if (btn) {
+        const idx = parseInt(btn.getAttribute('data-del'));
+        const items = readAdminList();
+        if (!isNaN(idx)) {
+          items.splice(idx, 1);
+          writeAdminList(items);
+          renderAdminTable();
+          loadCommissionData();
+        }
+      }
+    });
+  }
+
+  if (exportBtn) {
+    exportBtn.addEventListener('click', () => {
+      const data = JSON.stringify(readAdminList(), null, 2);
+      const blob = new Blob([data], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'commissions.json';
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+  }
+
+  if (importInput) {
+    importInput.addEventListener('change', async () => {
+      const file = importInput.files && importInput.files[0];
+      if (!file) return;
+      try {
+        const text = await file.text();
+        const arr = JSON.parse(text);
+        if (Array.isArray(arr)) {
+          writeAdminList(arr);
+          renderAdminTable();
+          loadCommissionData();
+        } else {
+          alert('JSON 배열 형태가 아닙니다.');
+        }
+      } catch (e) {
+        alert('JSON 파싱에 실패했습니다.');
+      } finally {
+        importInput.value = '';
+      }
+    });
+  }
+
+  if (clearBtn) {
+    clearBtn.addEventListener('click', () => {
+      if (confirm('로컬에 저장된 커미션 관리 데이터를 모두 삭제할까요?')) {
+        localStorage.removeItem('commission_admin');
+        renderAdminTable();
+        loadCommissionData();
+      }
+    });
+  }
+});
+// ---------------------------
 // 후기 데이터 불러오기
 // ---------------------------
 async function loadReviewData() {
@@ -380,21 +980,23 @@ async function loadReviewData() {
     // 최신순 정렬
     reviews = reviews.sort((a, b) => new Date(b.date) - new Date(a.date));
 
-    // 메인페이지: 4개 카드만 노출, 슬라이더 없음
-    const reviewSlider = document.getElementById("review-slider");
-    const reviewContainer = document.getElementById("review-list");
-    if (reviewSlider || reviewContainer) {
-      const target = reviewSlider || reviewContainer;
-      target.innerHTML = "";
-      reviews.slice(0, 4).forEach(r => {
-        const div = document.createElement("div");
-        div.classList.add("review-item");
-        div.innerHTML = `
-          <p class=\"review-text\">\"${r.content}\"</p>
-          <p class=\"review-author\">- ${r.author} (${r.rating ? '★'.repeat(r.rating)+'☆'.repeat(5-r.rating)+' ' : ''}${r.date ? r.date.split('T')[0] : ''})</p>
-        `;
-        target.appendChild(div);
-      });
+    // 메인페이지: 최근 후기 슬라이더(2개씩)
+    const recentEl = document.getElementById("recent-slider");
+    if (recentEl) {
+      window._recentReviews = reviews.slice(0, 8);
+      window._recentIdx = 0;
+      renderRecentSlider();
+    }
+
+    // Best 후기 슬라이더 (로컬 관리)
+    const bestEl = document.getElementById("best-slider");
+    if (bestEl) {
+      let best = [];
+      try { best = JSON.parse(localStorage.getItem('best_reviews') || '[]'); } catch {}
+      if (!Array.isArray(best)) best = [];
+      window._bestReviews = best.slice(0, 8);
+      window._bestIdx = 0;
+      renderBestSlider();
     }
 
 
@@ -403,11 +1005,106 @@ async function loadReviewData() {
   }
 }
 
+// Best 후기 관리 모달
+document.addEventListener('DOMContentLoaded', () => {
+  if (!(window.location.pathname.includes("index.html") || window.location.pathname === "/")) return;
+  const openBtn = document.getElementById('open-best-admin');
+  const modal = document.getElementById('best-admin-modal');
+  const closeBtn = document.getElementById('best-admin-close');
+  const form = document.getElementById('best-form');
+  const listBody = document.getElementById('best-admin-list');
+  function readBest() {
+    try { const arr = JSON.parse(localStorage.getItem('best_reviews') || '[]'); return Array.isArray(arr) ? arr : []; } catch { return []; }
+  }
+  function writeBest(arr) { localStorage.setItem('best_reviews', JSON.stringify(arr.slice(0, 4))); }
+  function renderBestAdmin() {
+    if (!listBody) return;
+    const arr = readBest();
+    listBody.innerHTML = '';
+    arr.forEach((it, idx) => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${it.author}</td><td>${'★'.repeat(it.rating||5)}</td><td><button data-del="${idx}">삭제</button></td>`;
+      listBody.appendChild(tr);
+    });
+  }
+  if (openBtn) openBtn.addEventListener('click', () => { if (document.body.classList.contains('is-admin')) { openModal(modal); renderBestAdmin(); } });
+  if (closeBtn) closeBtn.addEventListener('click', () => closeModal(modal));
+  if (form) form.addEventListener('submit', e => {
+    e.preventDefault();
+    if (!document.body.classList.contains('is-admin')) return;
+    const data = new FormData(form);
+    const item = {
+      author: (data.get('author')||'').toString().trim(),
+      content: (data.get('content')||'').toString().trim(),
+      rating: parseInt((data.get('rating')||'5').toString(), 10) || 5,
+      date: new Date().toISOString()
+    };
+    if (!item.author || !item.content) return;
+    const arr = readBest();
+    arr.unshift(item);
+    writeBest(arr);
+    form.reset();
+    renderBestAdmin();
+    // 슬라이더 갱신
+    window._bestReviews = readBest();
+    window._bestIdx = 0;
+    renderBestSlider();
+  });
+  if (listBody) listBody.addEventListener('click', e => {
+    const btn = e.target.closest && e.target.closest('button[data-del]');
+    if (!btn) return;
+    const idx = parseInt(btn.getAttribute('data-del'));
+    const arr = readBest();
+    arr.splice(idx, 1);
+    writeBest(arr);
+    renderBestAdmin();
+    window._bestReviews = readBest();
+    window._bestIdx = 0;
+    renderBestSlider();
+  });
+});
+function renderRecentSlider() {
+  const wrap = document.getElementById('recent-slider');
+  if (!wrap || !window._recentReviews) return;
+  const start = window._recentIdx || 0;
+  const items = window._recentReviews;
+  wrap.innerHTML = '';
+  for (let i = start; i < Math.min(start+2, items.length); i++) {
+    const r = items[i];
+    const div = document.createElement('div');
+    div.classList.add('review-item');
+    div.innerHTML = `<p class="review-text">"${r.content}"</p><p class="review-author">- ${r.author} (${r.rating ? '★'.repeat(r.rating)+'☆'.repeat(5-r.rating)+' ' : ''}${r.date ? r.date.split('T')[0] : ''})</p>`;
+    wrap.appendChild(div);
+  }
+}
+
+function renderBestSlider() {
+  const wrap = document.getElementById('best-slider');
+  if (!wrap || !window._bestReviews) return;
+  const start = window._bestIdx || 0;
+  const items = window._bestReviews;
+  wrap.innerHTML = '';
+  for (let i = start; i < Math.min(start+2, items.length); i++) {
+    const r = items[i];
+    const div = document.createElement('div');
+    div.classList.add('review-item');
+    div.innerHTML = `<p class="review-text">"${r.content}"</p><p class="review-author">- ${r.author} (${r.rating ? '★'.repeat(r.rating)+'☆'.repeat(5-r.rating)+' ' : ''})</p>`;
+    wrap.appendChild(div);
+  }
+}
+
 // ---------------------------
 // 커미션 데이터 불러오기
 // ---------------------------
 async function loadCommissionData() {
   try {
+    // 0) 관리자가 로컬에서 설정한 커미션(admin) 우선 적용
+    let adminList = [];
+    try {
+      adminList = JSON.parse(localStorage.getItem('commission_admin') || '[]');
+      if (!Array.isArray(adminList)) adminList = [];
+    } catch (e) { adminList = []; }
+
     // 우선 제출된 커미션 데이터가 있으면 사용 (data/commissions.json)
     let commissions = [];
     try {
@@ -435,6 +1132,11 @@ async function loadCommissionData() {
         }
       } catch (e) { /* ignore */ }
 
+    // 관리자 리스트가 있으면 이를 최우선으로 사용(사용자 업데이트 편의)
+    if (adminList.length > 0) {
+      commissions = adminList.concat(commissions);
+    }
+
     const list = document.getElementById("commission-list");
     const countWorking = document.getElementById("count-working");
     const countWaiting = document.getElementById("count-waiting");
@@ -446,19 +1148,24 @@ async function loadCommissionData() {
 
     // 제출 데이터는 {name, type, date, ... , status?} 형태일 수 있음
     commissions.forEach(item => {
+      // static 기본 데이터(이름 없음)는 표시하지 않음
+      if (!item || !item.name) return;
       const li = document.createElement("li");
-      if (item.name) {
-        // 이름 마지막 글자만 *로 마스킹
-        const name = String(item.name);
-        const masked = name.length > 0 ? name.slice(0, -1) + '*' : '*';
-        const type = item.type ? `${item.type}타입` : '';
-        const status = item.status || item.state || '작업중';
-        li.textContent = `${masked} / ${type} / ${status}`;
-        if (status.includes('작업')) working++;
-        else if (status.includes('대기')) waiting++;
-        else if (status.includes('완료')) done++;
-      }
-      // static 항목은 더 이상 표시하지 않음 (요구사항)
+      // 이름 마지막 글자만 *로 마스킹
+      const name = String(item.name);
+      const masked = name.length > 0 ? name.slice(0, -1) + '*' : '*';
+      const type = item.type ? `${item.type}타입` : '';
+      const status = item.status || item.state || '작업중';
+
+      let badgeClass = 'status-working';
+      if (status.includes('대기')) badgeClass = 'status-waiting';
+      else if (status.includes('완료')) badgeClass = 'status-done';
+
+      li.innerHTML = `<span class="commission-item-name">${masked}</span> <span class="commission-item-type">${type}</span> <span class="status-badge ${badgeClass}">${status}</span>`;
+
+      if (status.includes('작업')) working++;
+      else if (status.includes('대기')) waiting++;
+      else if (status.includes('완료')) done++;
       list.appendChild(li);
     });
 

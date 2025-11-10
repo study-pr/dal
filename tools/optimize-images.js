@@ -10,9 +10,16 @@ async function optimizeDir(input, output) {
   const files = fs.readdirSync(input).filter(f => /\.(jpe?g|png)$/i.test(f));
   for (const file of files) {
     const inPath = path.join(input, file);
-    const outPathJpg = path.join(output, file);
+    const ext = path.extname(file).toLowerCase();
+    const outPathSame = path.join(output, file); // 원본 확장자 유지
     const outPathWebp = path.join(output, file.replace(/\.[^.]+$/, '.webp'));
-    await sharp(inPath).resize({ width: 1200 }).jpeg({ quality: 80 }).toFile(outPathJpg);
+
+    const img = sharp(inPath).resize({ width: 1200 });
+    if (ext === '.png') {
+      await img.png({ compressionLevel: 9, palette: true }).toFile(outPathSame);
+    } else {
+      await img.jpeg({ quality: 80, mozjpeg: true }).toFile(outPathSame);
+    }
     await sharp(inPath).resize({ width: 800 }).webp({ quality: 75 }).toFile(outPathWebp);
     console.log('optimized', file);
   }

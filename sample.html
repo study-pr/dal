@@ -2,6 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>샘플</title>
   <link rel="stylesheet" href="css/style.css">
   <script defer src="js/main.js"></script>
@@ -33,6 +34,12 @@
         <p id="lightbox-caption"></p>
       </div>
     </div>
+
+  <div id="mini-player" class="mini-player" aria-label="Music player">
+    <button id="mini-play" class="mini-btn" aria-label="재생">▶</button>
+    <button id="mini-pause" class="mini-btn" aria-label="일시정지" style="display:none;">■</button>
+    <iframe id="mini-iframe" width="0" height="0" src="" title="YouTube mini player" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen style="display:none;"></iframe>
+  </div>
 </body>
 <script>
   // sample.html에서 샘플 썸네일 자동 로드
