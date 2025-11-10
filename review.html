@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>후기 - 나루 홈페이지</title>
+	<link rel="stylesheet" href="css/style.css">
+	<script defer src="js/main.js"></script>
+</head>
+<body>
+	<header class="top-nav">
+			<nav aria-label="주요" class="nav-buttons">
+				<button class="nav-btn" data-page="index.html">메인</button>
+				<button class="nav-btn" data-page="sample.html">샘플</button>
+				<button class="nav-btn" data-page="works.html">개인작</button>
+						<button class="nav-btn active" data-page="review.html" aria-current="page">후기</button>
+								<button class="nav-btn" data-page="commission.html">커미션 신청</button>
+			</nav>
+	</header>
+
+	<main class="container">
+		<section class="dashboard">
+			<div class="card">
+				<h3>후기</h3>
+				<p>이곳에는 고객님들이 남긴 후기들이 표시됩니다. 아래 폼을 사용해 후기를 남겨주세요.</p>
+						<form id="review-form-page" autocomplete="off">
+							<label>이름<br><input name="author" required></label>
+							<label>별점<br>
+								<span id="star-rating" class="star-rating" aria-label="별점 선택" tabindex="0">
+									<span data-value="1">☆</span><span data-value="2">☆</span><span data-value="3">☆</span><span data-value="4">☆</span><span data-value="5">☆</span>
+								</span>
+								<input type="hidden" name="rating" id="rating-value" value="5">
+							</label>
+							<label>후기 내용<br><textarea name="content" rows="5" required></textarea></label>
+							<button type="submit">남기기</button>
+						</form>
+						<div id="review-form-page-result" aria-live="polite"></div>
+						<div id="review-list-page" class="review-list-page"></div>
+			</div>
+		</section>
+	</main>
+</body>
+</html>

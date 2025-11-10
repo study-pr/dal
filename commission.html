@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>커미션 신청 - 나루</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script defer src="js/main.js"></script>
+</head>
+<body>
+  <header class="top-nav">
+    <nav aria-label="주요" class="nav-buttons">
+      <button class="nav-btn" data-page="index.html">메인</button>
+      <button class="nav-btn" data-page="sample.html">샘플</button>
+      <button class="nav-btn" data-page="works.html">개인작</button>
+      <button class="nav-btn" data-page="review.html">후기</button>
+    </nav>
+  </header>
+
+  <main class="container">
+    <section class="dashboard">
+      <div class="card">
+        <h3>커미션 신청 폼</h3>
+        <form id="commission-form" data-formspree-endpoint="">
+          <label>이름<br><input type="text" name="name" required></label><br>
+          <label>이메일<br><input type="email" name="email" required></label><br>
+          <label>타입<br>
+            <select name="type">
+              <option value="A">A타입 (캐릭터 일러스트)</option>
+              <option value="B">B타입 (굿즈/아이콘)</option>
+              <option value="C">C타입 (기타)</option>
+            </select>
+          </label><br>
+          <label>요청 내용<br><textarea name="message" rows="5" required></textarea></label><br>
+          <label>스타일(예: SD, 리얼, 일러스트)<br><input type="text" name="style"></label><br>
+          <label>예산<br><input type="text" name="budget"></label><br>
+          <button type="submit">신청하기</button>
+        </form>
+        <p class="note">정적 호스팅을 사용하신다면 Formspree 또는 EmailJS 같은 서비스를 통해 메일 전송을 설정할 수 있습니다. Formspree를 사용하실 경우 아래 빈 <code>data-formspree-endpoint</code>에 Formspree endpoint(<code>https://formspree.io/f/...</code>)를 붙여넣으세요. 서버가 있으면 자동으로 서버로 전송됩니다.</p>
+        <div id="commission-result" aria-live="polite"></div>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
