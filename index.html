@@ -9,13 +9,6 @@
 </head>
 <body>
   <header class="top-nav">
-    <nav aria-label="주요" class="nav-buttons">
-      <button class="nav-btn active" data-page="index.html" aria-current="page">메인</button>
-      <button class="nav-btn" data-page="sample.html">샘플</button>
-      <button class="nav-btn" data-page="works.html">개인작</button>
-      <button class="nav-btn" data-page="review.html">후기</button>
-      <button class="nav-btn" data-page="commission.html">커미션 신청</button>
-    </nav>
     <div class="top-utils" role="search">
       <input id="global-search" class="cute-input" type="search" placeholder="검색어를 입력하세요 (샘플/개인작 제목)">
       <span id="visitor-badge" class="pill-badge" aria-label="방문자 수">👀 0</span>
@@ -24,9 +17,17 @@
     </div>
   </header>
 
+  <nav aria-label="싸이월드 인덱스" class="side-nav">
+    <button class="nav-index active" data-page="index.html" aria-current="page"><span>🏠</span> 메인</button>
+    <button class="nav-index" data-page="sample.html"><span>🎨</span> 샘플</button>
+    <button class="nav-index" data-page="works.html"><span>🧵</span> 개인작</button>
+    <button class="nav-index" data-page="review.html"><span>💬</span> 후기</button>
+    <button class="nav-index" data-page="commission.html"><span>📝</span> 커미션</button>
+  </nav>
+
   <main class="container">
     <!-- 왼쪽 프로필 -->
-    <aside class="profile-card sticky" id="profile-card" data-draggable="true" role="complementary" aria-label="아티스트 프로필">
+    <aside class="profile-card sticky" id="profile-card" data-draggable="true" data-locked="true" role="complementary" aria-label="아티스트 프로필">
       <img src="image/ (1).jpg" alt="나루 프로필 사진" class="profile-img">
       <h2 class="profile-name">나루</h2>
       <p class="profile-bio">디지털 아티스트 / 커미션 작업 중</p>
@@ -37,7 +38,7 @@
 
     <!-- 중앙 대시보드 -->
     <section class="dashboard dashboard-grid">
-      <div class="card commission-status wide sticky" id="commission-card" data-draggable="true">
+      <div class="card commission-status wide sticky" id="commission-card" data-draggable="true" data-locked="true">
         <h3>현재 진행 중인 커미션</h3>
         <ul id="commission-list"></ul>
         <div class="summary">
@@ -50,7 +51,7 @@
         </div>
       </div>
 
-      <div class="card recent-review sticky" id="recent-review-card" data-draggable="true">
+      <div class="card recent-review sticky" id="recent-review-card" data-draggable="true" data-locked="true">
         <h3>최근 후기</h3>
         <div class="slider-wrap">
           <button class="slider-btn" id="recent-prev" aria-label="이전">◀</button>
@@ -59,7 +60,7 @@
         </div>
       </div>
 
-      <div class="card best-review sticky" id="best-review-card" data-draggable="true">
+      <div class="card best-review sticky" id="best-review-card" data-draggable="true" data-locked="true">
         <div class="card-head">
           <h3>Best 후기</h3>
           <button id="open-best-admin" class="nav-btn" data-admin>관리</button>

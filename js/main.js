@@ -1,5 +1,5 @@
 document.addEventListener("DOMContentLoaded", () => {
-  const buttons = document.querySelectorAll(".nav-btn[data-page]");
+  const buttons = document.querySelectorAll(".nav-btn[data-page], .nav-index[data-page]");
 
   // 🔹 네비게이션 버튼 처리
   buttons.forEach((btn) => {
@@ -581,6 +581,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     let startX = 0, startY = 0, originX = 0, originY = 0, dragging = false;
     function onDown(e) {
+      if (el.dataset.locked === 'true') return; // allow disabling drag
       dragging = true;
       const p = ('touches' in e) ? e.touches[0] : e;
       startX = p.clientX;
