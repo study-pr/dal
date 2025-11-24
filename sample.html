@@ -8,38 +8,53 @@
   <script defer src="js/main.js"></script>
 </head>
 <body>
-  <header class="top-nav"></header>
-  <nav aria-label="싸이월드 인덱스" class="side-nav">
-    <button class="nav-index" data-page="index.html"><span>🏠</span> 메인</button>
-    <button class="nav-index active" data-page="sample.html" aria-current="page"><span>🎨</span> 샘플</button>
-    <button class="nav-index" data-page="works.html"><span>🧵</span> 개인작</button>
-    <button class="nav-index" data-page="review.html"><span>💬</span> 후기</button>
-    <button class="nav-index" data-page="commission.html"><span>📝</span> 커미션</button>
-  </nav>
+  <div id="main-wrapper">
+    
+    <aside class="profile-card sticky" id="profile-card" role="complementary" aria-label="아티스트 프로필">
+      <div class="top-utils" role="search">
+        <input id="global-search" class="cute-input" type="search" placeholder="검색어">
+        <span id="visitor-badge" class="pill-badge" aria-label="방문자 수">👀 0</span>
+        <button id="admin-toggle" class="nav-btn" aria-label="관리자 모드 전환">Admin</button>
+        <button id="music-set" class="nav-btn" aria-label="음악 링크 설정" data-admin>Music</button>
+      </div>
+      <img src="image/ (1).jpg" alt="나루 프로필 사진" class="profile-img">
+      <h2 class="profile-name">나루</h2>
+      <p class="profile-bio">디지털 아티스트 / 커미션 작업 중</p>
+      <div class="status">
+        <span class="dot online"></span> 커미션 오픈 중
+      </div>
+    </aside>
+    
+    <nav aria-label="싸이월드 인덱스" class="side-nav">
+      <button class="nav-index" data-page="index.html"><span>🏠</span> 메인</button>
+      <button class="nav-index active" data-page="sample.html" aria-current="page"><span>🎨</span> 샘플</button>
+      <button class="nav-index" data-page="works.html"><span>🧵</span> 개인작</button>
+      <button class="nav-index" data-page="review.html"><span>💬</span> 후기</button>
+      <button class="nav-index" data-page="commission.html"><span>📝</span> 커미션</button>
+    </nav>
 
-  <main class="container">
-    <section class="dashboard">
-      <div class="card">
-        <h3>샘플 작품</h3>
-        <div id="sample-list" class="thumb-grid"></div>
+    <main class="container">
+      <section class="dashboard">
+        <div class="card">
+          <h3>샘플 작품</h3>
+          <div id="sample-list" class="thumb-grid"></div>
+        </div>
+      </section>
+    </main>
+      <div id="lightbox" class="modal" aria-hidden="true">
+        <div class="modal-content" role="dialog" aria-modal="true" aria-label="이미지 보기">
+          <button id="lightbox-close" class="modal-close" aria-label="닫기">✕</button>
+          <img id="lightbox-img" src="" alt="">
+          <p id="lightbox-caption"></p>
+        </div>
       </div>
-    </section>
-  </main>
-    <!-- 라이트박스 모달 -->
-    <div id="lightbox" class="modal" aria-hidden="true">
-      <div class="modal-content" role="dialog" aria-modal="true" aria-label="이미지 보기">
-        <button id="lightbox-close" class="modal-close" aria-label="닫기">✕</button>
-        <img id="lightbox-img" src="" alt="">
-        <p id="lightbox-caption"></p>
-      </div>
+
+    <div id="mini-player" class="mini-player" aria-label="Music player">
+      <button id="mini-play" class="mini-btn" aria-label="재생">▶</button>
+      <button id="mini-pause" class="mini-btn" aria-label="일시정지" style="display:none;">■</button>
+      <iframe id="mini-iframe" width="0" height="0" src="" title="YouTube mini player" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen style="display:none;"></iframe>
     </div>
-
-  <div id="mini-player" class="mini-player" aria-label="Music player">
-    <button id="mini-play" class="mini-btn" aria-label="재생">▶</button>
-    <button id="mini-pause" class="mini-btn" aria-label="일시정지" style="display:none;">■</button>
-    <iframe id="mini-iframe" width="0" height="0" src="" title="YouTube mini player" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen style="display:none;"></iframe>
-  </div>
-</body>
+  </div> </body>
 <script>
   // sample.html에서 샘플 썸네일 자동 로드
   document.addEventListener('DOMContentLoaded', function() {

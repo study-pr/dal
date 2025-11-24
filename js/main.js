@@ -26,8 +26,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // 미니 플레이어는 모든 페이지에서 초기화
   initMiniPlayer();
-  // 고정 프로필: index.html 외 페이지에 삽입
-  injectFixedProfile();
+  // 🚨 [제거] 고정 프로필 삽입 함수 호출 제거: HTML 구조 변경
+  // injectFixedProfile(); 
 
   // 커미션 게시판 페이지 초기화
   if (window.location.pathname.includes("commission.html")) {
@@ -310,6 +310,7 @@ function renderPersonalSlider() {
   }
 }
 
+// --- 슬라이드 렌더 함수 (index.html에서만 사용) ---
 function renderSampleSlider() {
   if (!(window.location.pathname.includes("index.html") || window.location.pathname === "/")) return;
   const container = document.getElementById('sample-list');
@@ -445,11 +446,8 @@ function initYouTubePlayer() {
       iframe.style.display = 'block';
     }
   } catch {}
-
-  // 🚨 [코드 개선] toEmbedUrl 함수 제거 (전역 함수 사용)
   
   btn.addEventListener('click', () => {
-    // 🚨 [코드 개선] 전역 toEmbedUrl 함수 사용
     const embed = toEmbedUrl(input.value); 
     
     if (embed) {
@@ -466,7 +464,6 @@ function initYouTubePlayer() {
 // 미니 음악 플레이어(고정) + Admin 음악 설정
 // ---------------------------
 function setMusicEmbed(url) {
-  // 🚨 [코드 개선] toEmbedUrl 유틸리티 함수 사용으로 중복 로직 제거
   const embed = toEmbedUrl(url); 
 
   if (embed) {
@@ -564,24 +561,10 @@ function initAdminMode() {
 }
 
 // ---------------------------
-// 고정 프로필 삽입(비-메인 페이지)
+// 🚨 [제거] 고정 프로필 삽입(비-메인 페이지) 함수 제거
 // ---------------------------
-function injectFixedProfile() {
-  if (window.location.pathname.includes("index.html") || window.location.pathname === "/") return;
-  if (document.getElementById('fixed-profile-root')) return;
-  const root = document.createElement('div');
-  root.id = 'fixed-profile-root';
-  root.className = 'fixed-profile';
-  root.innerHTML = `
-    <div class="profile-card sticky" aria-label="아티스트 프로필(고정)">
-      <img src="image/ (1).jpg" alt="나루 프로필 사진" class="profile-img">
-      <h2 class="profile-name">나루</h2>
-      <p class="profile-bio">디지털 아티스트 / 커미션 작업 중</p>
-      <div class="status"><span class="dot online"></span> 커미션 오픈 중</div>
-    </div>
-  `;
-  document.body.appendChild(root);
-}
+
+
 // ---------------------------
 // 드래그 이동(메인 카드) + 위치 저장
 // ---------------------------
@@ -593,6 +576,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   function writePos(obj) { localStorage.setItem(key, JSON.stringify(obj)); }
   const positions = readPos();
+  // 🚨 [수정] 드래그 방지: 프로필 카드의 드래그 기능을 비활성화 (HTML에서 data-draggable 제거)
   document.querySelectorAll('[data-draggable="true"]').forEach(el => {
     const id = el.id;
     if (positions[id]) {
@@ -1273,7 +1257,7 @@ document.addEventListener('DOMContentLoaded', function() {
       
       const meta = document.createElement('div');
       meta.className = 'review-meta';
-      meta.innerHTML = `<b>${r.author}</b> <span class="review-stars">${stars}</span>`;
+      meta.innerHTML = `<b>${r.author}</b> <span class=\"review-stars\">${stars}</span>`;
 
       const content = document.createElement('div');
       content.className = 'review-content';
