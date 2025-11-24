@@ -36,6 +36,28 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 // ---------------------------
+// 유틸리티 함수: YouTube URL -> 임베드 URL 변환 (코드 중복 제거)
+// ---------------------------
+function toEmbedUrl(url, autoplay = true) {
+  try {
+    const u = new URL(url);
+    const params = autoplay ? '?autoplay=1' : '';
+    if (u.hostname.includes('youtu.be')) {
+      return `https://www.youtube.com/embed/${u.pathname.replace('/','')}${params}`;
+    }
+    if (u.hostname.includes('youtube.com')) {
+      const id = u.searchParams.get('v');
+      if (id) return `https://www.youtube.com/embed/${id}${params}`;
+      if (u.pathname.startsWith('/shorts/')) {
+        const sid = u.pathname.split('/shorts/')[1];
+        if (sid) return `https://www.youtube.com/embed/${sid}${params}`;
+      }
+    }
+  } catch {}
+  return '';
+}
+
+// ---------------------------
 // 개인작 로드
 // ---------------------------
 async function loadPersonal() {
@@ -139,13 +161,37 @@ function initCommissionBoard() {
     if (!item) return;
     // 열람: 관리자는 바로, 작성자는 PIN 확인
     if (!requirePinIfNeeded(item, '열람')) return;
-    viewBody.innerHTML = `
-      <p><b>이름</b> ${item.name}</p>
-      <p><b>이메일</b> ${item.email || '-'}</p>
-      <p><b>타입</b> ${item.type || 'A'}</p>
-      <p><b>작성일</b> ${(item.date||'').replace('T',' ').slice(0,16)}</p>
-      <p><b>요청 내용</b><br>${(item.message||'').replace(/\\n/g,'<br>')}</p>
-    `;
+    
+    // 🚨 [XSS 수정] innerHTML 대신 안전하게 DOM 요소와 textContent 사용
+    viewBody.innerHTML = ''; // 기존 내용 삭제
+
+    const fields = [
+      { label: '이름', value: item.name },
+      { label: '이메일', value: item.email || '-' },
+      { label: '타입', value: item.type || 'A' },
+      { label: '작성일', value: (item.date||'').replace('T',' ').slice(0,16) },
+    ];
+
+    fields.forEach(f => {
+      const p = document.createElement('p');
+      const b = document.createElement('b');
+      b.textContent = f.label;
+      p.appendChild(b);
+      // 안전하게 Text Node로 삽입
+      p.appendChild(document.createTextNode(` ${f.value}`));
+      viewBody.appendChild(p);
+    });
+
+    // 요청 내용은 별도의 요소에 textContent로 삽입
+    const messageP = document.createElement('p');
+    messageP.innerHTML = '<b>요청 내용</b><br>';
+    const messageContent = document.createElement('span'); // 또는 div
+    // 사용자가 입력한 메시지를 textContent로 삽입. 줄바꿈을 \n으로 변환
+    messageContent.textContent = (item.message||'').replace(/\\n/g, '\n');
+    messageP.appendChild(messageContent);
+    viewBody.appendChild(messageP);
+    // ----------------------------------------------------
+
     delBtn.setAttribute('data-idx', String(idx));
     openModal(viewModal);
   }
@@ -400,25 +446,12 @@ function initYouTubePlayer() {
     }
   } catch {}
 
-  function toEmbedUrl(url) {
-    try {
-      const u = new URL(url);
-      if (u.hostname.includes('youtu.be')) {
-        return `https://www.youtube.com/embed/${u.pathname.replace('/','')}?autoplay=1`;
-      }
-      if (u.hostname.includes('youtube.com')) {
-        const id = u.searchParams.get('v');
-        if (id) return `https://www.youtube.com/embed/${id}?autoplay=1`;
-        if (u.pathname.startsWith('/shorts/')) {
-          const sid = u.pathname.split('/shorts/')[1];
-          if (sid) return `https://www.youtube.com/embed/${sid}?autoplay=1`;
-        }
-      }
-    } catch {}
-    return '';
-  }
+  // 🚨 [코드 개선] toEmbedUrl 함수 제거 (전역 함수 사용)
+  
   btn.addEventListener('click', () => {
-    const embed = toEmbedUrl(input.value);
+    // 🚨 [코드 개선] 전역 toEmbedUrl 함수 사용
+    const embed = toEmbedUrl(input.value); 
+    
     if (embed) {
       iframe.src = embed;
       iframe.style.display = 'block';
@@ -433,21 +466,9 @@ function initYouTubePlayer() {
 // 미니 음악 플레이어(고정) + Admin 음악 설정
 // ---------------------------
 function setMusicEmbed(url) {
-  const embed = (function toEmbed(u) {
-    try {
-      const x = new URL(u);
-      if (x.hostname.includes('youtu.be')) return `https://www.youtube.com/embed/${x.pathname.replace('/','')}?autoplay=1`;
-      if (x.hostname.includes('youtube.com')) {
-        const id = x.searchParams.get('v');
-        if (id) return `https://www.youtube.com/embed/${id}?autoplay=1`;
-        if (x.pathname.startsWith('/shorts/')) {
-          const sid = x.pathname.split('/shorts/')[1];
-          if (sid) return `https://www.youtube.com/embed/${sid}?autoplay=1`;
-        }
-      }
-    } catch {}
-    return '';
-  })(url);
+  // 🚨 [코드 개선] toEmbedUrl 유틸리티 함수 사용으로 중복 로직 제거
+  const embed = toEmbedUrl(url); 
+
   if (embed) {
     try { localStorage.setItem('music_embed', embed); } catch {}
     return embed;
@@ -1074,7 +1095,19 @@ function renderRecentSlider() {
     const r = items[i];
     const div = document.createElement('div');
     div.classList.add('review-item');
-    div.innerHTML = `<p class="review-text">"${r.content}"</p><p class="review-author">- ${r.author} (${r.rating ? '★'.repeat(r.rating)+'☆'.repeat(5-r.rating)+' ' : ''}${r.date ? r.date.split('T')[0] : ''})</p>`;
+    
+    // 🚨 [XSS 수정] innerHTML 대신 안전하게 DOM 요소와 textContent 사용
+    const textP = document.createElement('p');
+    textP.classList.add('review-text');
+    textP.textContent = `"${r.content}"`; 
+
+    const authorP = document.createElement('p');
+    authorP.classList.add('review-author');
+    authorP.textContent = `- ${r.author} (${r.rating ? '★'.repeat(r.rating)+'☆'.repeat(5-r.rating)+' ' : ''}${r.date ? r.date.split('T')[0] : ''})`;
+
+    div.appendChild(textP);
+    div.appendChild(authorP);
+    // ----------------------------------------------------
     wrap.appendChild(div);
   }
 }
@@ -1089,7 +1122,19 @@ function renderBestSlider() {
     const r = items[i];
     const div = document.createElement('div');
     div.classList.add('review-item');
-    div.innerHTML = `<p class="review-text">"${r.content}"</p><p class="review-author">- ${r.author} (${r.rating ? '★'.repeat(r.rating)+'☆'.repeat(5-r.rating)+' ' : ''})</p>`;
+    
+    // 🚨 [XSS 수정] innerHTML 대신 안전하게 DOM 요소와 textContent 사용
+    const textP = document.createElement('p');
+    textP.classList.add('review-text');
+    textP.textContent = `"${r.content}"`;
+
+    const authorP = document.createElement('p');
+    authorP.classList.add('review-author');
+    authorP.textContent = `- ${r.author} (${r.rating ? '★'.repeat(r.rating)+'☆'.repeat(5-r.rating)+' ' : ''})`;
+
+    div.appendChild(textP);
+    div.appendChild(authorP);
+    // ----------------------------------------------------
     wrap.appendChild(div);
   }
 }
@@ -1222,7 +1267,21 @@ document.addEventListener('DOMContentLoaded', function() {
     reviews.forEach(r => {
       const div = document.createElement('div');
       div.className = 'review-item-page';
-      div.innerHTML = `<div class="review-meta"><b>${r.author}</b> <span class="review-stars">${'★'.repeat(r.rating||5)}${'☆'.repeat(5-(r.rating||5))}</span></div><div class="review-content">${r.content}</div>`;
+      // 🚨 [XSS 수정] innerHTML 대신 안전하게 DOM 요소와 textContent 사용
+      const rating = r.rating||5;
+      const stars = '★'.repeat(rating) + '☆'.repeat(5-rating);
+      
+      const meta = document.createElement('div');
+      meta.className = 'review-meta';
+      meta.innerHTML = `<b>${r.author}</b> <span class="review-stars">${stars}</span>`;
+
+      const content = document.createElement('div');
+      content.className = 'review-content';
+      content.textContent = r.content; // 안전한 텍스트 삽입
+
+      div.appendChild(meta);
+      div.appendChild(content);
+      // ----------------------------------------------------
       listEl.appendChild(div);
     });
   }
